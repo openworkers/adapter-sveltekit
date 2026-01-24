@@ -90,6 +90,7 @@ export default function (options = {}) {
         builder.mkdirp(`${dest}/functions`);
 
         const endpointsDir = path.join(builder.getServerDirectory(), 'entries/endpoints');
+        const functionTemplate = posixify(path.resolve(files, 'function-worker.js'));
 
         if (existsSync(endpointsDir)) {
           const endpoints = findEndpoints(endpointsDir);
@@ -99,55 +100,15 @@ export default function (options = {}) {
             const workerName = routePattern.replace(/\//g, '-').replace(/^-/, '') || 'index';
             const workerFile = `functions/${workerName}.js`;
 
-            // Create entry point for this function
-            const functionEntry = `${tmp}/function-${workerName}.js`;
-            const endpointPath = posixify(endpoint.file);
-
-            writeFileSync(
-              functionEntry,
-              `import * as handlers from '${endpointPath}';\n` +
-                `export default {\n` +
-                `  async fetch(req, env, ctx) {\n` +
-                `    globalThis.env = env;\n` +
-                `    const method = req.method;\n` +
-                `    const handler = handlers[method];\n` +
-                `    if (!handler) {\n` +
-                `      return new Response('Method Not Allowed', {\n` +
-                `        status: 405,\n` +
-                `        headers: { Allow: Object.keys(handlers).join(', ') }\n` +
-                `      });\n` +
-                `    }\n` +
-                `    const url = new URL(req.url);\n` +
-                `    const event = {\n` +
-                `      request: req,\n` +
-                `      url,\n` +
-                `      params: ctx.params ?? {},\n` +
-                `      platform: { env, ctx },\n` +
-                `      getClientAddress() {\n` +
-                `        return req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for') ?? '';\n` +
-                `      }\n` +
-                `    };\n` +
-                `    try {\n` +
-                `      return await handler(event);\n` +
-                `    } catch (error) {\n` +
-                `      console.error('[Function] Error:', error);\n` +
-                `      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {\n` +
-                `        status: 500,\n` +
-                `        headers: { 'Content-Type': 'application/json' }\n` +
-                `      });\n` +
-                `    }\n` +
-                `  }\n` +
-                `};\n`
-            );
-
-            // Bundle the function
+            // Bundle using the template with ENDPOINT alias
             await build({
-              entryPoints: [functionEntry],
+              entryPoints: [functionTemplate],
               bundle: true,
               format: 'esm',
               platform: 'browser',
               outfile: `${dest}/${workerFile}`,
               alias: {
+                ENDPOINT: posixify(endpoint.file),
                 'node:async_hooks': shimAsyncHooks
               },
               external: ['node:*'],
