@@ -1,45 +1,47 @@
 {
-	"name": "@openworkers/adapter-sveltekit",
-	"version": "0.2.0",
-	"description": "SvelteKit adapter for OpenWorkers",
-	"keywords": [
-		"adapter",
-		"openworkers",
-		"edge",
-		"workers",
-		"svelte",
-		"sveltekit"
-	],
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/openworkers/adapter-sveltekit.git"
-	},
-	"license": "MIT",
-	"type": "module",
-	"exports": {
-		".": {
-			"types": "./index.d.ts",
-			"import": "./index.js"
-		},
-		"./package.json": "./package.json"
-	},
-	"types": "index.d.ts",
-	"files": [
-		"files",
-		"index.js",
-		"index.d.ts"
-	],
-	"scripts": {
-		"build": "esbuild src/worker.js --bundle --outfile=files/worker.js --external:SERVER --external:MANIFEST --format=esm",
-		"prepublishOnly": "npm run build"
-	},
-	"dependencies": {
-		"esbuild": "^0.24.0"
-	},
-	"devDependencies": {
-		"@sveltejs/kit": "^2.0.0"
-	},
-	"peerDependencies": {
-		"@sveltejs/kit": "^2.0.0"
-	}
+  "name": "@openworkers/adapter-sveltekit",
+  "version": "0.2.0",
+  "description": "SvelteKit adapter for OpenWorkers",
+  "keywords": [
+    "adapter",
+    "openworkers",
+    "edge",
+    "workers",
+    "svelte",
+    "sveltekit"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openworkers/adapter-sveltekit.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "index.d.ts",
+  "files": [
+    "files",
+    "index.js",
+    "index.d.ts"
+  ],
+  "scripts": {
+    "build": "esbuild src/worker.js --bundle --outfile=files/worker.js --external:SERVER --external:MANIFEST --format=esm",
+    "prepublishOnly": "npm run build",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "esbuild": "^0.24.0"
+  },
+  "devDependencies": {
+    "@sveltejs/kit": "^2.0.0",
+    "prettier": "^3.8.1"
+  },
+  "peerDependencies": {
+    "@sveltejs/kit": "^2.0.0"
+  }
 }
