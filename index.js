@@ -60,6 +60,7 @@ export default function (options = {}) {
 
       // Bundle worker with esbuild
       const workerDest = `${dest}/worker.js`;
+      const shimAsyncHooks = posixify(path.resolve(files, 'shims/async_hooks.js'));
 
       await build({
         entryPoints: [`${files}/worker.js`],
@@ -69,7 +70,8 @@ export default function (options = {}) {
         outfile: workerDest,
         alias: {
           SERVER: entryPoint,
-          MANIFEST: entryPoint
+          MANIFEST: entryPoint,
+          'node:async_hooks': shimAsyncHooks
         },
         external: ['node:*'],
         minify: false,
