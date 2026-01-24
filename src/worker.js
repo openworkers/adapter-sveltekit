@@ -76,6 +76,12 @@ export default {
 
     // Serve static assets and prerendered pages via ASSETS binding
     if (is_static_asset || prerendered.has(pathname) || pathname === version_file || pathname.startsWith(immutable)) {
+      // For prerendered HTML pages, rewrite URL to .html file
+      if (prerendered.has(pathname) && !pathname.includes('.')) {
+        const htmlPath = pathname === '/' ? '/index.html' : `${pathname}.html`;
+        return env.ASSETS.fetch(htmlPath);
+      }
+
       return env.ASSETS.fetch(req);
     }
 
