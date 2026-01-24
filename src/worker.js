@@ -1,5 +1,7 @@
 import { Server, manifest, prerendered, base_path } from 'SERVER';
 
+/** @typedef {{ ASSETS: BindingAssets }} Env */
+
 const server = new Server(manifest);
 
 const app_path = `/${manifest.appPath}`;
@@ -8,26 +10,27 @@ const version_file = `${app_path}/version.json`;
 
 // Shim caches API (not available in OpenWorkers)
 if (typeof caches === 'undefined') {
-  const noopCache = {
+  /** @type {Cache} */
+  const noopCache = /** @type {any} */ ({
     match: async () => undefined,
     put: async () => {},
     delete: async () => false
-  };
+  });
 
-  globalThis.caches = {
+  globalThis.caches = /** @type {any} */ ({
     default: noopCache,
     open: async () => noopCache
-  };
+  });
 }
 
 /** @type {string} */
 let origin;
 
 const initialized = server.init({
-  env: globalThis.env ?? {},
-  read: async (file) => {
+  env: /** @type {Record<string, string>} */ (globalThis.env ?? {}),
+  read: async (/** @type {string} */ file) => {
     const url = `${origin}/${file}`;
-    const response = await globalThis.env.ASSETS.fetch(url);
+    const response = await /** @type {Env} */ (globalThis.env).ASSETS.fetch(url);
 
     if (!response.ok) {
       throw new Error(`read(...) failed: could not fetch ${url} (${response.status} ${response.statusText})`);
@@ -37,13 +40,8 @@ const initialized = server.init({
   }
 });
 
+/** @type {ExportedHandler<Env>} */
 export default {
-  /**
-   * @param {Request} req
-   * @param {{ ASSETS: { fetch: typeof fetch } }} env
-   * @param {any} ctx
-   * @returns {Promise<Response>}
-   */
   async fetch(req, env, ctx) {
     // Expose env globally for SvelteKit
     globalThis.env = env;
