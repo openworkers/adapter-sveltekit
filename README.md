@@ -35,10 +35,10 @@ export default {
 
 ```
 dist/
-├── worker.js     # Main SSR worker
-├── routes.js     # Route manifest for edge routing
-├── assets/       # Static assets and prerendered pages
-└── functions/    # Mini-workers for API routes (if functions: true)
+├── _worker.js     # Main SSR worker
+├── _routes.json   # Route manifest for edge routing
+├── assets/        # Static assets and prerendered pages
+└── functions/     # Mini-workers for API routes (if functions: true)
     ├── api-hello.js
     └── api-users.js
 ```
@@ -50,7 +50,7 @@ When `functions: true`, the adapter generates a separate mini-worker for each `+
 - `/api/hello/+server.ts` → `functions/api-hello.js`
 - `/api/users/+server.ts` → `functions/api-users.js`
 
-The route mappings are included in `routes.js`:
+The route mappings are included in `_routes.json`:
 
 ```js
 {
