@@ -1,6 +1,6 @@
 {
   "name": "@openworkers/adapter-sveltekit",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "SvelteKit adapter for OpenWorkers",
   "keywords": [
     "adapter",

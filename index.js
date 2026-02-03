@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, readdirSync, statSync, readFileSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -150,10 +150,7 @@ export default function (options = {}) {
         ssr: ['/*']
       };
 
-      writeFileSync(
-        `${dest}/_routes.json`,
-        JSON.stringify(routes, null, 2)
-      );
+      writeFileSync(`${dest}/_routes.json`, JSON.stringify(routes, null, 2));
 
       builder.log.minor(`Wrote ${workerDest}`);
       builder.log.minor(`Wrote ${dest}/_routes.json`);
@@ -184,9 +181,7 @@ function extractEndpointsFromManifest(manifest, serverDir) {
     if (!sourcePath || !sourcePath.startsWith('src/routes/')) continue;
 
     // Extract route from source path: src/routes/status/[code]/[[reason]]/+server.ts
-    const routePart = sourcePath
-      .replace(/^src\/routes/, '')
-      .replace(/\/\+server\.(ts|js)$/, '');
+    const routePart = sourcePath.replace(/^src\/routes/, '').replace(/\/\+server\.(ts|js)$/, '');
 
     // Convert SvelteKit route syntax to simple wildcard patterns
     const pattern = convertRouteToPattern(routePart);
@@ -195,8 +190,8 @@ function extractEndpointsFromManifest(manifest, serverDir) {
     const file = path.join(serverDir, entry.file);
 
     endpoints.push({
-      pattern,       // For routing: /status/*/*
-      route: routePart,  // For filename: /status/[code]/[[reason]]
+      pattern, // For routing: /status/*/*
+      route: routePart, // For filename: /status/[code]/[[reason]]
       file
     });
   }
@@ -217,15 +212,14 @@ function convertRouteToPattern(route) {
   if (!route || route === '/') return '/';
 
   const segments = route.split('/').filter(Boolean);
-  const patternSegments = segments.map(segment => {
+  const patternSegments = segments.map((segment) => {
     // Rest parameter: [...params] -> **
     if (segment.startsWith('[...') && segment.endsWith(']')) {
       return '**';
     }
 
     // Required or optional parameter: [param] or [[param]] -> *
-    if ((segment.startsWith('[') && segment.endsWith(']')) ||
-        (segment.startsWith('[[') && segment.endsWith(']]'))) {
+    if ((segment.startsWith('[') && segment.endsWith(']')) || (segment.startsWith('[[') && segment.endsWith(']]'))) {
       return '*';
     }
 
