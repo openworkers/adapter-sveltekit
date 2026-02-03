@@ -91,15 +91,18 @@ export default function (options = {}) {
       if (functionsEnabled) {
         builder.mkdirp(`${dest}/functions`);
 
-        const endpointsDir = path.join(builder.getServerDirectory(), 'entries/endpoints');
+        const serverDir = builder.getServerDirectory();
+        const viteManifestPath = path.join(serverDir, '.vite/manifest.json');
         const functionTemplate = posixify(path.resolve(files, 'function-worker.js'));
 
-        if (existsSync(endpointsDir)) {
-          const endpoints = findEndpoints(endpointsDir);
+        if (existsSync(viteManifestPath)) {
+          const viteManifest = JSON.parse(readFileSync(viteManifestPath, 'utf-8'));
+          const endpoints = extractEndpointsFromManifest(viteManifest, serverDir);
 
           for (const endpoint of endpoints) {
-            const routePattern = endpoint.route;
-            const workerName = routePattern.replace(/\//g, '-').replace(/^-/, '') || 'index';
+            const routePattern = endpoint.pattern;
+            // Use SvelteKit route syntax for worker filename
+            const workerName = endpoint.route.replace(/\//g, '-').replace(/^-/, '') || 'index';
             const workerFile = `functions/${workerName}.js`;
 
             // Bundle using the template with ENDPOINT alias
@@ -162,30 +165,72 @@ export default function (options = {}) {
 }
 
 /**
- * Find all endpoint files in the server output
- * @param {string} dir
- * @param {string} [base='']
- * @returns {Array<{route: string, file: string}>}
+ * Extract endpoints from Vite manifest and convert SvelteKit routes to simple patterns
+ * @param {object} manifest - Vite manifest object
+ * @param {string} serverDir - Server build directory
+ * @returns {Array<{pattern: string, route: string, file: string}>}
  */
-function findEndpoints(dir, base = '') {
-  const results = [];
-  const entries = readdirSync(dir);
+function extractEndpointsFromManifest(manifest, serverDir) {
+  const endpoints = [];
 
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry);
-    const stat = statSync(fullPath);
+  for (const [key, entry] of Object.entries(manifest)) {
+    // Only process endpoint files (+server.ts)
+    if (!key.includes('+server.ts')) continue;
 
-    if (stat.isDirectory()) {
-      results.push(...findEndpoints(fullPath, `${base}/${entry}`));
-    } else if (entry === '_server.ts.js' || entry === '_server.js.js') {
-      results.push({
-        route: base || '/',
-        file: fullPath
-      });
-    }
+    const sourcePath = entry.src;
+    if (!sourcePath || !sourcePath.startsWith('src/routes/')) continue;
+
+    // Extract route from source path: src/routes/status/[code]/[[reason]]/+server.ts
+    const routePart = sourcePath
+      .replace(/^src\/routes/, '')
+      .replace(/\/\+server\.(ts|js)$/, '');
+
+    // Convert SvelteKit route syntax to simple wildcard patterns
+    const pattern = convertRouteToPattern(routePart);
+
+    // Get the built file path
+    const file = path.join(serverDir, entry.file);
+
+    endpoints.push({
+      pattern,       // For routing: /status/*/*
+      route: routePart,  // For filename: /status/[code]/[[reason]]
+      file
+    });
   }
 
-  return results;
+  return endpoints;
+}
+
+/**
+ * Convert SvelteKit route syntax to simple wildcard patterns
+ * Examples:
+ *   /status/[code]/[[reason]] becomes /status/star/star
+ *   /range/[n] becomes /range/star
+ *   /drip/[...params] becomes /drip/doublestar
+ * @param {string} route - SvelteKit route (e.g. "/status/[code]/[[reason]]")
+ * @returns {string} - Simple pattern with wildcards
+ */
+function convertRouteToPattern(route) {
+  if (!route || route === '/') return '/';
+
+  const segments = route.split('/').filter(Boolean);
+  const patternSegments = segments.map(segment => {
+    // Rest parameter: [...params] -> **
+    if (segment.startsWith('[...') && segment.endsWith(']')) {
+      return '**';
+    }
+
+    // Required or optional parameter: [param] or [[param]] -> *
+    if ((segment.startsWith('[') && segment.endsWith(']')) ||
+        (segment.startsWith('[[') && segment.endsWith(']]'))) {
+      return '*';
+    }
+
+    // Static segment: keep as-is
+    return segment;
+  });
+
+  return '/' + patternSegments.join('/');
 }
 
 /** @param {string} str */
