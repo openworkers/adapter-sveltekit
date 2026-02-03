@@ -6,36 +6,36 @@
  */
 
 export class AsyncLocalStorage {
-	#store;
+  #store;
 
-	run(store, fn, ...args) {
-		this.#store = store;
-		return fn(...args);
-	}
+  run(store, fn, ...args) {
+    this.#store = store;
+    return fn(...args);
+  }
 
-	getStore() {
-		return this.#store;
-	}
+  getStore() {
+    return this.#store;
+  }
 
-	// Stubs for API completeness
-	enterWith(store) {
-		this.#store = store;
-	}
+  // Stubs for API completeness
+  enterWith(store) {
+    this.#store = store;
+  }
 
-	exit(fn, ...args) {
-		this.#store = undefined;
-		return fn(...args);
-	}
+  exit(fn, ...args) {
+    this.#store = undefined;
+    return fn(...args);
+  }
 
-	disable() {
-		this.#store = undefined;
-	}
+  disable() {
+    this.#store = undefined;
+  }
 
-	static bind(fn) {
-		return fn;
-	}
+  static bind(fn) {
+    return fn;
+  }
 
-	static snapshot() {
-		return (fn, ...args) => fn(...args);
-	}
+  static snapshot() {
+    return (fn, ...args) => fn(...args);
+  }
 }
