@@ -28,6 +28,22 @@ const builds: BuildOptions[] = [
       'sveltekit:routing': join(process.cwd(), 'node_modules/@sveltejs/kit/src/utils/routing.js')
     },
     external: ['ENDPOINT', 'lib:cookies', 'lib:routing', 'node:async_hooks']
+  },
+  // Runtime lib: cookies
+  {
+    entryPoints: ['src/lib/cookies.ts'],
+    outfile: 'dist/lib/cookies.js',
+    alias: {
+      'sveltekit:cookie': join(process.cwd(), 'node_modules/@sveltejs/kit/src/runtime/server/cookie.js')
+    }
+  },
+  // Runtime lib: routing
+  {
+    entryPoints: ['src/lib/routing.ts'],
+    outfile: 'dist/lib/routing.js',
+    alias: {
+      'sveltekit:routing': join(process.cwd(), 'node_modules/@sveltejs/kit/src/utils/routing.js')
+    }
   }
 ];
 
