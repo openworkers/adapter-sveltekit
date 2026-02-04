@@ -1,0 +1,92 @@
+/**
+ * Mini-worker template for OpenWorkers Functions.
+ * Lightweight wrapper that provides cookies, locals, and other SvelteKit features.
+ */
+
+import * as handlers from 'ENDPOINT';
+
+interface Env {
+  ASSETS?: BindingAssets;
+  [key: string]: any;
+}
+
+const worker: ExportedHandler<Env> = {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    globalThis.env = env as any;
+
+    const method = req.method as keyof typeof handlers;
+    const handler = handlers[method] as import('@sveltejs/kit').RequestHandler | undefined;
+
+    if (!handler) {
+      return new Response('Method Not Allowed', {
+        status: 405,
+        headers: { Allow: Object.keys(handlers).join(', ') }
+      });
+    }
+
+    const url = new URL(req.url);
+
+    // Extract params using generated code (no runtime parser needed)
+    let params = {};
+    if (WITH_PARAMS) {
+      const { extractParams } = await import('lib:routing');
+      params = extractParams(url);
+    }
+
+    const responseHeaders = new Headers();
+
+    let cookiesData;
+    if (WITH_COOKIES) {
+      const { getCookies } = await import('lib:cookies');
+      cookiesData = getCookies(req, url);
+
+      // CRITICAL: Initialize normalized_url so cookies.set() works
+      cookiesData.set_trailing_slash('ignore');
+    }
+
+    // Build a minimal RequestEvent-like object
+    const event = {
+      fetch: globalThis.fetch.bind(globalThis),
+      request: req,
+      url,
+      params,
+      cookies: (WITH_COOKIES && cookiesData?.cookies) || undefined,
+      locals: {},
+      platform: { env, ctx },
+      getClientAddress() {
+        return req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for') ?? '';
+      },
+      setHeaders(headers: Record<string, string>) {
+        for (const [key, value] of Object.entries(headers)) {
+          responseHeaders.set(key, String(value));
+        }
+      }
+    };
+
+    try {
+      const response = await handler(event as any);
+
+      // Add cookies to response headers (SvelteKit's Set-Cookie)
+      if (WITH_COOKIES && cookiesData?.new_cookies) {
+        const { addCookiesToHeaders } = await import('lib:cookies');
+        addCookiesToHeaders(response.headers, cookiesData.new_cookies.values());
+      }
+
+      // Merge custom headers into response
+      for (const [key, value] of responseHeaders.entries()) {
+        response.headers.append(key, value);
+      }
+
+      return response;
+    } catch (error) {
+      console.error(`[Function] Error in ${method} handler:`, error);
+
+      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+};
+
+export default worker;

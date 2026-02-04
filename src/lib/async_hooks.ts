@@ -5,37 +5,37 @@
  * Module-level state is already isolated, so no real async tracking is needed.
  */
 
-export class AsyncLocalStorage {
-  #store;
+export class AsyncLocalStorage<T = any> {
+  #store: T | undefined;
 
-  run(store, fn, ...args) {
+  run<R>(store: T, fn: (...args: any[]) => R, ...args: any[]): R {
     this.#store = store;
     return fn(...args);
   }
 
-  getStore() {
+  getStore(): T | undefined {
     return this.#store;
   }
 
   // Stubs for API completeness
-  enterWith(store) {
+  enterWith(store: T): void {
     this.#store = store;
   }
 
-  exit(fn, ...args) {
+  exit<R>(fn: (...args: any[]) => R, ...args: any[]): R {
     this.#store = undefined;
     return fn(...args);
   }
 
-  disable() {
+  disable(): void {
     this.#store = undefined;
   }
 
-  static bind(fn) {
+  static bind<T extends (...args: any[]) => any>(fn: T): T {
     return fn;
   }
 
-  static snapshot() {
+  static snapshot(): <R>(fn: (...args: any[]) => R, ...args: any[]) => R {
     return (fn, ...args) => fn(...args);
   }
 }

@@ -1,6 +1,9 @@
 import { Server, manifest, prerendered, base_path } from 'SERVER';
 
-/** @typedef {{ ASSETS: BindingAssets }} Env */
+interface Env {
+  ASSETS: BindingAssets;
+  [key: string]: any;
+}
 
 const server = new Server(manifest);
 
@@ -10,39 +13,36 @@ const version_file = `${app_path}/version.json`;
 
 // Shim caches API (not available in OpenWorkers)
 if (typeof caches === 'undefined') {
-  /** @type {Cache} */
-  const noopCache = /** @type {any} */ ({
+  const noopCache: Cache = {
     match: async () => undefined,
     put: async () => {},
     delete: async () => false
-  });
+  } as any;
 
-  globalThis.caches = /** @type {any} */ ({
+  (globalThis as any).caches = {
     default: noopCache,
     open: async () => noopCache
-  });
+  };
 }
 
-/** @type {string} */
-let origin;
+let origin: string;
 
 const initialized = server.init({
-  env: /** @type {Record<string, string>} */ (globalThis.env ?? {}),
-  read: async (/** @type {string} */ file) => {
+  env: (globalThis.env ?? {}) as Env,
+  read: async (file: string) => {
     const url = `${origin}/${file}`;
-    const response = await /** @type {Env} */ (globalThis.env).ASSETS.fetch(url);
+    const response = await (globalThis.env as Env).ASSETS.fetch(url);
 
     if (!response.ok) {
       throw new Error(`read(...) failed: could not fetch ${url} (${response.status} ${response.statusText})`);
     }
 
-    return response.body;
+    return response.body!;
   }
 });
 
-/** @type {ExportedHandler<Env>} */
-export default {
-  async fetch(req, env, ctx) {
+const worker: ExportedHandler<Env> = {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // Expose env globally for SvelteKit
     globalThis.env = env;
 
@@ -107,3 +107,5 @@ export default {
     });
   }
 };
+
+export default worker;

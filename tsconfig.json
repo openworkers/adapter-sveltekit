@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["@openworkers/workers-types", "bun-types"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "paths": {
+      "SERVER": ["./src/ambient.d.ts"],
+      "MANIFEST": ["./src/ambient.d.ts"],
+      "ENDPOINT": ["./src/ambient.d.ts"],
+      "lib:cookies": ["./src/lib/cookies.ts"],
+      "lib:routing": ["./src/lib/routing.ts"],
+      "sveltekit:routing": ["./node_modules/@sveltejs/kit/src/utils/routing.js"]
+    }
+  },
+  "include": ["src/**/*", "build.ts"],
+  "exclude": ["node_modules", "dist"]
+}
