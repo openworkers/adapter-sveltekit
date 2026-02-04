@@ -52,8 +52,8 @@ export async function buildFunctionWorker(options: FunctionBuildOptions): Promis
 
   const functionTemplate = path.join(files, 'function-worker.js');
   const libCookies = path.join(files, '../src/lib/cookies.js');
-  const svelteKitCookie = path.join(adapterRoot, 'node_modules/@sveltejs/kit/src/runtime/server/cookie.js');
-  const svelteKitRouting = path.join(adapterRoot, 'node_modules/@sveltejs/kit/src/utils/routing.js');
+  const svelteKitCookie = path.join(process.cwd(), 'node_modules/@sveltejs/kit/src/runtime/server/cookie.js');
+  const svelteKitRouting = path.join(process.cwd(), 'node_modules/@sveltejs/kit/src/utils/routing.js');
 
   const external = ['node:*'];
   if (!usesCookies) {
