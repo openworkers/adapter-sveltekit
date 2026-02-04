@@ -18,17 +18,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Setup Node.js for publishing
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org/'
 
+      - name: Build
+        run: bun run build
+
+      - name: Type check
+        run: bun check
+
+      - name: Run tests
+        run: bun test
+
       - name: Update npm to latest
         run: npm install -g npm@latest
-
-      - name: Install dependencies
-        run: npm install
 
       - name: Publish to npm
         run: npm publish

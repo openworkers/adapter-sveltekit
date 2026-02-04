@@ -27,7 +27,7 @@ const builds: BuildOptions[] = [
       'sveltekit:cookie': join(process.cwd(), 'node_modules/@sveltejs/kit/src/runtime/server/cookie.js'),
       'sveltekit:routing': join(process.cwd(), 'node_modules/@sveltejs/kit/src/utils/routing.js')
     },
-    external: ['ENDPOINT', 'lib:cookies', 'lib:routing', 'sveltekit:routing', 'node:async_hooks']
+    external: ['ENDPOINT', 'lib:cookies', 'lib:routing', 'node:async_hooks']
   }
 ];
 
