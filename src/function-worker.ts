@@ -79,6 +79,14 @@ const worker: ExportedHandler<Env> = {
 
       return response;
     } catch (error: any) {
+      // SvelteKit Redirect (duck-typed to avoid duplicate class from bundling)
+      if (error?.status >= 300 && error?.status < 400 && error?.location) {
+        return new Response(null, {
+          status: error.status,
+          headers: { Location: error.location }
+        });
+      }
+
       // SvelteKit HttpError (duck-typed to avoid duplicate class from bundling)
       if (error?.status && error?.body) {
         return new Response(JSON.stringify(error.body), {
