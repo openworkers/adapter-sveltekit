@@ -19,6 +19,10 @@ const version: string = pkg.version;
 export default function (options: AdapterOptions = {}): Adapter {
   return {
     name,
+    supports: {
+      read: () => true
+    },
+
     async adapt(builder) {
       const dest = options.outDir ?? 'build';
       const assetsDir = `${dest}/assets`;
@@ -98,6 +102,7 @@ export default function (options: AdapterOptions = {}): Adapter {
         },
         external: ['node:*'],
         minifySyntax: true,
+        minifyWhitespace: true,
         minifyIdentifiers: true,
         treeShaking: true,
         banner: {
