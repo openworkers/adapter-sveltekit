@@ -17,8 +17,8 @@ import adapter from '@openworkers/adapter-sveltekit';
 export default {
   kit: {
     adapter: adapter({
-      out: 'dist',      // Output directory (default: 'dist')
-      functions: false  // Generate mini-workers for API routes (default: false)
+      out: 'dist', // Output directory (default: 'dist')
+      functions: false // Generate mini-workers for API routes (default: false)
     })
   }
 };
@@ -26,10 +26,10 @@ export default {
 
 ## Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `out` | `string` | `'dist'` | Output directory for the build |
-| `functions` | `boolean` | `false` | Generate separate mini-workers for each API route |
+| Option      | Type      | Default  | Description                                       |
+| ----------- | --------- | -------- | ------------------------------------------------- |
+| `out`       | `string`  | `'dist'` | Output directory for the build                    |
+| `functions` | `boolean` | `false`  | Generate separate mini-workers for each API route |
 
 ## Output
 
@@ -89,6 +89,44 @@ declare global {
 
 export {};
 ```
+
+## Deployment
+
+Build your SvelteKit app, then deploy it with the [OpenWorkers CLI](https://github.com/openworkers/openworkers-cli):
+
+```bash
+# Build
+bun run build
+
+# Deploy
+ow workers upload my-app ./dist
+```
+
+For a first deployment, you'll need to set up the worker and its assets binding:
+
+```bash
+# Create the worker
+ow workers create my-app -d "My SvelteKit App"
+
+# Create a storage bucket for static assets
+ow storage create my-storage
+
+# Create an environment and bind the storage as ASSETS
+ow env create my-app-env
+ow env bind my-app-env ASSETS my-storage --type assets
+
+# Link the environment to the worker
+ow workers link my-app my-app-env
+# Build and upload
+bun run build
+ow workers upload my-app ./dist
+```
+
+## Examples
+
+- [world-time-app](https://github.com/max-lt/world-time-app) — SSR-rendered clocks with server-side positioned hands
+- [httpbin](https://github.com/max-lt/httpbin) — HTTP request testing tool
+- [rock-paper-scissors](https://github.com/max-lt/rock-paper-scissors) — Provably fair Rock Paper Scissors game
 
 ## License
 
