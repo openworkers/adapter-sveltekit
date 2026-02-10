@@ -44,7 +44,13 @@ const builds: BuildOptions[] = [
     alias: {
       'sveltekit:routing': join(process.cwd(), 'node_modules/@sveltejs/kit/src/utils/routing.js')
     }
-  }
+  },
+  // Async hooks shim
+  { entryPoints: ['src/lib/async-hooks.ts'], outfile: 'dist/lib/async-hooks.js' },
+  // Node compat shims
+  { entryPoints: ['src/lib/node-path.ts'], outfile: 'dist/lib/node-path.js' },
+  { entryPoints: ['src/lib/node-fs.ts'], outfile: 'dist/lib/node-fs.js' },
+  { entryPoints: ['src/lib/node-url.ts'], outfile: 'dist/lib/node-url.js' }
 ];
 
 const commonOptions: BuildOptions = {
