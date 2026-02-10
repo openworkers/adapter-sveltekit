@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { build, BuildOptions } from 'esbuild';
 import type { Adapter } from '@sveltejs/kit';
 import { buildFunctionWorker } from './lib/build-function.js';
-import { RouteParams } from '$app/types';
 
 interface AdapterOptions {
   outDir?: string;
@@ -91,11 +90,11 @@ export default function (options: AdapterOptions = {}): Adapter {
           'node:async_hooks': `${libDir}/async-hooks.js`,
           ...(nodeCompat
             ? {
-                'path': `${libDir}/node-path.js`,
+                path: `${libDir}/node-path.js`,
                 'node:path': `${libDir}/node-path.js`,
-                'fs': `${libDir}/node-fs.js`,
+                fs: `${libDir}/node-fs.js`,
                 'node:fs': `${libDir}/node-fs.js`,
-                'url': `${libDir}/node-url.js`,
+                url: `${libDir}/node-url.js`,
                 'node:url': `${libDir}/node-url.js`
               }
             : {})

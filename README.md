@@ -17,8 +17,8 @@ import adapter from '@openworkers/adapter-sveltekit';
 export default {
   kit: {
     adapter: adapter({
-      out: 'dist', // Output directory (default: 'dist')
-      functions: false // Generate mini-workers for API routes (default: false)
+      outDir: 'build', // Output directory (default: 'build')
+      functions: true // Generate mini-workers for API routes (default: false)
     })
   }
 };
@@ -26,15 +26,16 @@ export default {
 
 ## Options
 
-| Option      | Type      | Default  | Description                                       |
-| ----------- | --------- | -------- | ------------------------------------------------- |
-| `out`       | `string`  | `'dist'` | Output directory for the build                    |
-| `functions` | `boolean` | `false`  | Generate separate mini-workers for each API route |
+| Option       | Type      | Default   | Description                                       |
+| ------------ | --------- | --------- | ------------------------------------------------- |
+| `outDir`     | `string`  | `'build'` | Output directory for the build                    |
+| `functions`  | `boolean` | `false`   | Generate separate mini-workers for each API route |
+| `nodeCompat` | `boolean` | `false`   | Include shims for Node.js built-in modules        |
 
 ## Output
 
 ```
-dist/
+build/
 ├── _worker.js     # Main SSR worker
 ├── _routes.json   # Route manifest for edge routing
 ├── assets/        # Static assets and prerendered pages
@@ -99,7 +100,7 @@ Build your SvelteKit app, then deploy it with the [OpenWorkers CLI](https://gith
 bun run build
 
 # Deploy
-ow workers upload my-app ./dist
+ow workers upload my-app ./build
 ```
 
 For a first deployment, you'll need to set up the worker and its assets binding:
@@ -119,7 +120,7 @@ ow env bind my-app-env ASSETS my-storage --type assets
 ow workers link my-app my-app-env
 # Build and upload
 bun run build
-ow workers upload my-app ./dist
+ow workers upload my-app ./build
 ```
 
 ## Examples
