@@ -46,6 +46,12 @@ const worker: ExportedHandler<Env> = {
     // Expose env globally for SvelteKit
     globalThis.env = env;
 
+    // Fix protocol when behind a reverse proxy (e.g. Cloudflare)
+    const proto = req.headers.get('x-forwarded-proto');
+    if (proto && !req.url.startsWith(proto)) {
+      req = new Request(req.url.replace(/^http:/, `${proto}:`), req);
+    }
+
     if (!origin) {
       origin = new URL(req.url).origin;
     }

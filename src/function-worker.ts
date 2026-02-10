@@ -14,6 +14,12 @@ const worker: ExportedHandler<Env> = {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     globalThis.env = env as any;
 
+    // Fix protocol when behind a reverse proxy (e.g. Cloudflare)
+    const proto = req.headers.get('x-forwarded-proto');
+    if (proto && !req.url.startsWith(proto)) {
+      req = new Request(req.url.replace(/^http:/, `${proto}:`), req);
+    }
+
     const method = req.method as keyof typeof handlers;
     const handler = handlers[method] as import('@sveltejs/kit').RequestHandler | undefined;
 
