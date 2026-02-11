@@ -3,7 +3,7 @@
  * Reuses parseRouteId() and exec() instead of reimplementing
  */
 
-import { parseRouteId } from './routing.js';
+import { parseRouteId } from '../runtime/routing.js';
 
 /**
  * Generate a module that exports an extractParams function

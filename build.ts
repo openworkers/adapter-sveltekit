@@ -15,42 +15,42 @@ const builds: BuildOptions[] = [
   },
   // Main worker
   {
-    entryPoints: ['src/worker.ts'],
-    outfile: 'dist/worker.js',
+    entryPoints: ['src/runtime/worker.ts'],
+    outfile: 'dist/runtime/worker.js',
     external: ['SERVER', 'MANIFEST', 'node:async_hooks']
   },
-  // Function worker (lib modules are aliased at build time per endpoint)
+  // Function worker (runtime modules are aliased at build time per endpoint)
   {
-    entryPoints: ['src/function-worker.ts'],
-    outfile: 'dist/function-worker.js',
+    entryPoints: ['src/runtime/function-worker.ts'],
+    outfile: 'dist/runtime/function-worker.js',
     alias: {
       'sveltekit:cookie': join(process.cwd(), 'node_modules/@sveltejs/kit/src/runtime/server/cookie.js'),
       'sveltekit:routing': join(process.cwd(), 'node_modules/@sveltejs/kit/src/utils/routing.js')
     },
     external: ['ENDPOINT', 'lib:cookies', 'lib:routing', 'node:async_hooks']
   },
-  // Runtime lib: cookies
+  // Runtime: cookies
   {
-    entryPoints: ['src/lib/cookies.ts'],
-    outfile: 'dist/lib/cookies.js',
+    entryPoints: ['src/runtime/cookies.ts'],
+    outfile: 'dist/runtime/cookies.js',
     alias: {
       'sveltekit:cookie': join(process.cwd(), 'node_modules/@sveltejs/kit/src/runtime/server/cookie.js')
     }
   },
-  // Runtime lib: routing
+  // Runtime: routing
   {
-    entryPoints: ['src/lib/routing.ts'],
-    outfile: 'dist/lib/routing.js',
+    entryPoints: ['src/runtime/routing.ts'],
+    outfile: 'dist/runtime/routing.js',
     alias: {
       'sveltekit:routing': join(process.cwd(), 'node_modules/@sveltejs/kit/src/utils/routing.js')
     }
   },
   // Async hooks shim
-  { entryPoints: ['src/lib/async-hooks.ts'], outfile: 'dist/lib/async-hooks.js' },
+  { entryPoints: ['src/shims/async-hooks.ts'], outfile: 'dist/shims/async-hooks.js' },
   // Node compat shims
-  { entryPoints: ['src/lib/node-path.ts'], outfile: 'dist/lib/node-path.js' },
-  { entryPoints: ['src/lib/node-fs.ts'], outfile: 'dist/lib/node-fs.js' },
-  { entryPoints: ['src/lib/node-url.ts'], outfile: 'dist/lib/node-url.js' }
+  { entryPoints: ['src/shims/node-path.ts'], outfile: 'dist/shims/node-path.js' },
+  { entryPoints: ['src/shims/node-fs.ts'], outfile: 'dist/shims/node-fs.js' },
+  { entryPoints: ['src/shims/node-url.ts'], outfile: 'dist/shims/node-url.js' }
 ];
 
 const commonOptions: BuildOptions = {

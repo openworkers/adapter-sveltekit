@@ -31,7 +31,7 @@ const initialized = server.init({
   env: (globalThis.env ?? {}) as Env,
   read: async (file: string) => {
     const url = `${origin}/${file}`;
-    const response = await (globalThis.env as Env).ASSETS.fetch(url);
+    const response = await globalThis.env.ASSETS.fetch(url);
 
     if (!response.ok) {
       throw new Error(`read(...) failed: could not fetch ${url} (${response.status} ${response.statusText})`);
@@ -43,9 +43,6 @@ const initialized = server.init({
 
 const worker: ExportedHandler<Env> = {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // Expose env globally for SvelteKit
-    globalThis.env = env;
-
     // Fix protocol when behind a reverse proxy (e.g. Cloudflare)
     const proto = req.headers.get('x-forwarded-proto');
     if (proto && !req.url.startsWith(proto)) {

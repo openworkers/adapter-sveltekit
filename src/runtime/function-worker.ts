@@ -95,7 +95,7 @@ const worker: ExportedHandler<Env> = {
 
       // SvelteKit HttpError (duck-typed to avoid duplicate class from bundling)
       if (error?.status && error?.body) {
-        return new Response(JSON.stringify(error.body), {
+        return Response.json(error.body, {
           status: error.status,
           headers: { 'Content-Type': 'application/json' }
         });
@@ -103,10 +103,13 @@ const worker: ExportedHandler<Env> = {
 
       console.error(`[Function] Error in ${method} handler:`, error);
 
-      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return Response.json(
+        { error: 'Internal Server Error' },
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
   }
 };

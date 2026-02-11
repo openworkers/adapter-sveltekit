@@ -1,6 +1,6 @@
 declare global {
   // Extend globalThis with env for SvelteKit
-  var env: { ASSETS: BindingAssets; [key: string]: any } | undefined;
+  var env: { ASSETS: BindingAssets; [key: string]: any };
 
   // Build-time constants (defined via esbuild)
   const WITH_COOKIES: boolean;

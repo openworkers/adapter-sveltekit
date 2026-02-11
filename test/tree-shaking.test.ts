@@ -5,8 +5,8 @@
  */
 
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { buildFunctionWorker } from '../src/lib/build-function';
-import { detectCookiesUsage } from '../src/lib/detect-cookies';
+import { buildFunctionWorker } from '../src/adapter/build-function';
+import { detectCookiesUsage } from '../src/adapter/detect-cookies';
 import { join } from 'node:path';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 

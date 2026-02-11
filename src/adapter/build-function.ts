@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { detectCookiesUsage } from './detect-cookies.js';
 import { generateParamsModule } from './generate-params.js';
 
-export interface FunctionBuildOptions {
+export interface FunctionBuildOptions extends Pick<BuildOptions, 'minify' | 'outfile'> {
   /** Path to the endpoint file (+server.ts) */
   endpointFile: string;
   /** Output file path */
@@ -22,12 +22,7 @@ export interface FunctionBuildOptions {
  * This is the EXACT same build process used in production
  */
 export async function buildFunctionWorker(options: FunctionBuildOptions): Promise<void> {
-  const {
-    endpointFile,
-    outfile,
-    routePattern,
-    minify = false
-  } = options;
+  const { endpointFile, outfile, routePattern, minify = false } = options;
 
   // Auto-detect if endpoint uses cookies
   const usesCookies = detectCookiesUsage(endpointFile);
@@ -42,16 +37,15 @@ export async function buildFunctionWorker(options: FunctionBuildOptions): Promis
   writeFileSync(paramsModulePath, paramsModuleCode);
 
   // Resolve paths relative to adapter root
-  // In dev: import.meta.url is src/lib/build-function.ts -> need ../..
+  // In dev: import.meta.url is src/adapter/build-function.ts -> need ../..
   // In prod (bundled): import.meta.url is dist/index.js -> need ..
   const urlPath = fileURLToPath(import.meta.url);
-  const adapterRoot = urlPath.includes('/dist/')
-    ? fileURLToPath(new URL('..', import.meta.url))
-    : fileURLToPath(new URL('../..', import.meta.url));
+  const isDist = urlPath.includes('/dist/');
+  const adapterRoot = fileURLToPath(new URL(isDist ? '..' : '../..', import.meta.url));
   const files = path.join(adapterRoot, 'dist');
 
-  const functionTemplate = path.join(files, 'function-worker.js');
-  const libCookies = path.join(files, 'lib/cookies.js');
+  const functionTemplate = path.join(files, 'runtime/function-worker.js');
+  const libCookies = path.join(files, 'runtime/cookies.js');
   const svelteKitCookie = path.join(process.cwd(), 'node_modules/@sveltejs/kit/src/runtime/server/cookie.js');
   const svelteKitRouting = path.join(process.cwd(), 'node_modules/@sveltejs/kit/src/utils/routing.js');
 

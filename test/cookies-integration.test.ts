@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { buildFunctionWorker } from '../src/lib/build-function';
+import { buildFunctionWorker } from '../src/adapter/build-function';
 import { join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
 

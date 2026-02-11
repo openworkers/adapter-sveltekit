@@ -15,8 +15,8 @@
       "SERVER": ["./src/ambient.d.ts"],
       "MANIFEST": ["./src/ambient.d.ts"],
       "ENDPOINT": ["./src/ambient.d.ts"],
-      "lib:cookies": ["./src/lib/cookies.ts"],
-      "lib:routing": ["./src/lib/routing.ts"],
+      "lib:cookies": ["./src/runtime/cookies.ts"],
+      "lib:routing": ["./src/runtime/routing.ts"],
       "sveltekit:routing": ["./node_modules/@sveltejs/kit/src/utils/routing.js"]
     }
   },

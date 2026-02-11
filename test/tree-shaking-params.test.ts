@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { buildFunctionWorker } from '../src/lib/build-function';
+import { buildFunctionWorker } from '../src/adapter/build-function';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const testDir = '/tmp/adapter-tree-shaking-params';

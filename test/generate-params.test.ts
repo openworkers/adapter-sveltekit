@@ -1,5 +1,5 @@
 import { describe, test } from 'bun:test';
-import { generateParamsModule } from '../src/lib/generate-params';
+import { generateParamsModule } from '../src/adapter/generate-params';
 
 describe('generateParamsModule', () => {
   test('empty params', () => {

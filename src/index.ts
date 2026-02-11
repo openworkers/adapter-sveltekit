@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build, BuildOptions } from 'esbuild';
 import type { Adapter } from '@sveltejs/kit';
-import { buildFunctionWorker } from './lib/build-function.js';
+import { buildFunctionWorker } from './adapter/build-function.js';
 
 interface AdapterOptions {
   outDir?: string;
@@ -75,10 +75,10 @@ export default function (options: AdapterOptions = {}): Adapter {
 
       // Bundle main worker with esbuild
       const workerDest = `${dest}/_worker.js`;
-      const libDir = posixify(path.resolve(files, 'lib'));
+      const shimsDir = posixify(path.resolve(files, 'shims'));
 
       await build({
-        entryPoints: [`${files}/worker.js`],
+        entryPoints: [`${files}/runtime/worker.js`],
         bundle: true,
         format: 'esm',
         platform: 'neutral',
@@ -87,15 +87,15 @@ export default function (options: AdapterOptions = {}): Adapter {
         alias: {
           SERVER: entryPoint,
           MANIFEST: entryPoint,
-          'node:async_hooks': `${libDir}/async-hooks.js`,
+          'node:async_hooks': `${shimsDir}/async-hooks.js`,
           ...(nodeCompat
             ? {
-                path: `${libDir}/node-path.js`,
-                'node:path': `${libDir}/node-path.js`,
-                fs: `${libDir}/node-fs.js`,
-                'node:fs': `${libDir}/node-fs.js`,
-                url: `${libDir}/node-url.js`,
-                'node:url': `${libDir}/node-url.js`
+                path: `${shimsDir}/node-path.js`,
+                'node:path': `${shimsDir}/node-path.js`,
+                fs: `${shimsDir}/node-fs.js`,
+                'node:fs': `${shimsDir}/node-fs.js`,
+                url: `${shimsDir}/node-url.js`,
+                'node:url': `${shimsDir}/node-url.js`
               }
             : {})
         },

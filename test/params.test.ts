@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
 import { existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { buildFunctionWorker } from '../src/lib/build-function';
+import { buildFunctionWorker } from '../src/adapter/build-function';
 
 const testDir = '/tmp/adapter-sveltekit-test-params';
 const endpointsDir = `${testDir}/endpoints`;
