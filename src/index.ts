@@ -9,6 +9,10 @@ interface AdapterOptions {
   outDir?: string;
   functions?: boolean;
   nodeCompat?: boolean;
+  debug?: {
+    sourcemap?: boolean;
+    prettier?: boolean;
+  };
 }
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'));
@@ -27,6 +31,7 @@ export default function (options: AdapterOptions = {}): Adapter {
       const assetsDir = `${dest}/assets`;
       const functionsEnabled = options.functions ?? false;
       const nodeCompat = options.nodeCompat ?? false;
+      const debug = options.debug ?? {};
 
       const files = fileURLToPath(new URL('.', import.meta.url).href);
       const tmp = builder.getBuildDirectory('openworkers-tmp');
@@ -144,6 +149,7 @@ export default function (options: AdapterOptions = {}): Adapter {
               outfile: `${dest}/${workerFile}`,
               routePattern: endpoint.route,
               minify: true,
+              debug,
               hooksFile
             });
 

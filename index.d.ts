@@ -20,6 +20,16 @@ export interface AdapterOptions {
    * @default false
    */
   nodeCompat?: boolean;
+
+  /**
+   * Debug options for generated worker files.
+   */
+  debug?: {
+    /** Emit source maps alongside worker files */
+    sourcemap?: boolean;
+    /** Format output with Prettier for readability */
+    prettier?: boolean;
+  };
 }
 
 export default function plugin(options?: AdapterOptions): Adapter;

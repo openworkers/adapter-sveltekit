@@ -1,7 +1,7 @@
 import { build, BuildOptions } from 'esbuild';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { writeFileSync, unlinkSync, mkdtempSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { detectCookiesUsage } from './detect-cookies.js';
 import { detectLocalsUsage } from './detect-locals.js';
@@ -16,6 +16,11 @@ export interface FunctionBuildOptions extends Pick<BuildOptions, 'minify' | 'out
   routePattern: string;
   /** Minify output */
   minify?: boolean;
+  /** Debug options */
+  debug?: {
+    sourcemap?: boolean;
+    prettier?: boolean;
+  };
   /** Path to compiled hooks.server.js (if project has hooks) */
   hooksFile?: string;
 }
@@ -25,7 +30,7 @@ export interface FunctionBuildOptions extends Pick<BuildOptions, 'minify' | 'out
  * This is the EXACT same build process used in production
  */
 export async function buildFunctionWorker(options: FunctionBuildOptions): Promise<void> {
-  const { endpointFile, outfile, routePattern, minify = false, hooksFile } = options;
+  const { endpointFile, outfile, routePattern, minify = false, debug = {}, hooksFile } = options;
 
   // Auto-detect if endpoint uses cookies
   const usesCookies = detectCookiesUsage(endpointFile);
@@ -77,8 +82,12 @@ export async function buildFunctionWorker(options: FunctionBuildOptions): Promis
         ...(withHooks ? { 'lib:hooks': hooksFile! } : {})
       },
       external,
+      sourcemap: debug.sourcemap ? 'external' : false,
       minifySyntax: minify,
+      minifyIdentifiers: minify,
+      minifyWhitespace: minify,
       treeShaking: true,
+      legalComments: 'none',
       define: {
         ROUTE_PATTERN: JSON.stringify(routePattern),
         WITH_COOKIES: JSON.stringify(usesCookies),
@@ -86,6 +95,17 @@ export async function buildFunctionWorker(options: FunctionBuildOptions): Promis
         WITH_HOOKS: JSON.stringify(withHooks)
       }
     });
+
+    if (debug.prettier) {
+      try {
+        const prettier = await import('prettier');
+        const raw = readFileSync(outfile, 'utf-8');
+        const formatted = await prettier.format(raw, { parser: 'meriyah' });
+        writeFileSync(outfile, formatted);
+      } catch {
+        console.warn('debug.prettier requires prettier to be installed: bun i -d prettier');
+      }
+    }
   } finally {
     // Cleanup temporary params file
     try {
