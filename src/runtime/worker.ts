@@ -1,4 +1,5 @@
 import { Server, manifest, prerendered, base_path } from 'SERVER';
+import '../shims/caches.js';
 
 interface Env {
   ASSETS: BindingAssets;
@@ -10,20 +11,6 @@ const server = new Server(manifest);
 const app_path = `/${manifest.appPath}`;
 const immutable = `${app_path}/immutable/`;
 const version_file = `${app_path}/version.json`;
-
-// Shim caches API (not available in OpenWorkers)
-if (typeof caches === 'undefined') {
-  const noopCache: Cache = {
-    match: async () => undefined,
-    put: async () => {},
-    delete: async () => false
-  } as any;
-
-  (globalThis as any).caches = {
-    default: noopCache,
-    open: async () => noopCache
-  };
-}
 
 let origin: string;
 

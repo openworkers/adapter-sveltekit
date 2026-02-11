@@ -5,6 +5,8 @@
 
 import * as handlers from 'ENDPOINT';
 
+import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
+
 interface Env {
   ASSETS?: BindingAssets;
   [key: string]: any;
@@ -21,7 +23,7 @@ const worker: ExportedHandler<Env> = {
     }
 
     const method = req.method as keyof typeof handlers;
-    const handler = handlers[method] as import('@sveltejs/kit').RequestHandler | undefined;
+    const handler = handlers[method] as RequestHandler | undefined;
 
     if (!handler) {
       return new Response('Method Not Allowed', {
@@ -50,15 +52,22 @@ const worker: ExportedHandler<Env> = {
       cookiesData.set_trailing_slash('ignore');
     }
 
+    const noopSpan = {} as RequestEvent['tracing']['root'];
+
     // Build a minimal RequestEvent-like object
-    const event = {
+    const event: RequestEvent = {
       fetch: globalThis.fetch.bind(globalThis),
       request: req,
       url,
       params,
-      cookies: (WITH_COOKIES && cookiesData?.cookies) || undefined,
+      cookies: ((WITH_COOKIES && cookiesData?.cookies) || undefined)!,
       locals: {},
       platform: { env, ctx },
+      route: { id: ROUTE_PATTERN },
+      isDataRequest: false,
+      isSubRequest: false,
+      isRemoteRequest: false,
+      tracing: { enabled: false, root: noopSpan, current: noopSpan },
       getClientAddress() {
         return req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for') ?? '';
       },
@@ -70,7 +79,7 @@ const worker: ExportedHandler<Env> = {
     };
 
     try {
-      const response = await handler(event as any);
+      const response = await handler(event);
 
       // Add cookies to response headers (SvelteKit's Set-Cookie)
       if (WITH_COOKIES && cookiesData?.new_cookies) {
