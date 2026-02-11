@@ -5,32 +5,33 @@
  */
 
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { buildFunctionWorker } from '../src/adapter/build-function';
-import { detectCookiesUsage } from '../src/adapter/detect-cookies';
+import { buildFunctionWorker } from '../../src/adapter/build-function';
+import { detectCookiesUsage } from '../../src/adapter/detect-cookies';
 import { join } from 'node:path';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 
-const outDir = 'test/dist';
+const outDir = '/tmp/adapter-sveltekit-test-tree-shaking-cookies';
+
 if (!existsSync(outDir)) {
   mkdirSync(outDir, { recursive: true });
 }
 
 describe('Cookie Tree-Shaking', () => {
-  const withCookiesEndpoint = join(process.cwd(), 'test/functions/+server.ts');
-  const withoutCookiesEndpoint = join(process.cwd(), 'test/functions-no-cookies/+server.ts');
+  const withCookiesEndpoint = join(process.cwd(), 'test/fixtures/with-cookies/+server.ts');
+  const withoutCookiesEndpoint = join(process.cwd(), 'test/fixtures/no-cookies/+server.ts');
   const EXPECTED_MIN_DIFFERENCE = 10000; // 10KB minimum
 
   beforeAll(async () => {
     // Build both workers
     await buildFunctionWorker({
       endpointFile: withCookiesEndpoint,
-      outfile: join(process.cwd(), 'test/dist/with-cookies.js'),
+      outfile: join(outDir, 'with-cookies.js'),
       routePattern: '/with-cookies'
     });
 
     await buildFunctionWorker({
       endpointFile: withoutCookiesEndpoint,
-      outfile: join(process.cwd(), 'test/dist/without-cookies.js'),
+      outfile: join(outDir, 'without-cookies.js'),
       routePattern: '/without-cookies'
     });
   });
@@ -44,8 +45,8 @@ describe('Cookie Tree-Shaking', () => {
   });
 
   test('should exclude cookie code when not used', () => {
-    const withCookiesCode = readFileSync('test/dist/with-cookies.js', 'utf-8');
-    const withoutCookiesCode = readFileSync('test/dist/without-cookies.js', 'utf-8');
+    const withCookiesCode = readFileSync(`${outDir}/with-cookies.js`, 'utf-8');
+    const withoutCookiesCode = readFileSync(`${outDir}/without-cookies.js`, 'utf-8');
 
     const withSize = withCookiesCode.length;
     const withoutSize = withoutCookiesCode.length;

@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { buildFunctionWorker } from '../src/adapter/build-function';
+import { buildFunctionWorker } from '../../src/adapter/build-function';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 
 const testDir = '/tmp/adapter-sveltekit-test-tree-shaking-hooks';
@@ -13,6 +13,7 @@ const outDir = `${testDir}/dist`;
 const endpointsDir = `${testDir}/endpoints`;
 
 beforeAll(() => {
+
   if (existsSync(testDir)) {
     rmSync(testDir, { recursive: true });
   }

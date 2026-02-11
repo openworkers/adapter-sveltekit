@@ -1,12 +1,13 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
 import { existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { buildFunctionWorker } from '../src/adapter/build-function';
+import { buildFunctionWorker } from '../../src/adapter/build-function';
 
 const testDir = '/tmp/adapter-sveltekit-test-params';
 const endpointsDir = `${testDir}/endpoints`;
 const buildDir = `${testDir}/build`;
 
 beforeAll(() => {
+
   if (existsSync(testDir)) {
     rmSync(testDir, { recursive: true });
   }

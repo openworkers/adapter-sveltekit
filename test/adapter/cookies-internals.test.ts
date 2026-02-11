@@ -6,7 +6,7 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
 
 // @ts-ignore
-import { get_cookies, add_cookies_to_headers } from '../node_modules/@sveltejs/kit/src/runtime/server/cookie.js';
+import { get_cookies, add_cookies_to_headers } from '../../node_modules/@sveltejs/kit/src/runtime/server/cookie.js';
 
 console.log('\n=== Testing SvelteKit Cookies ===\n');
 
@@ -43,6 +43,7 @@ console.log('   Set-Cookie headers:', responseHeaders.getAll('set-cookie'));
 
 // Validation
 console.log('\n=== Test Results ===');
+
 if (result.new_cookies.size === 2) {
   console.log('✅ SUCCESS: Both cookies were set correctly');
   console.log('✅ set_trailing_slash() properly flushes the internal queue');

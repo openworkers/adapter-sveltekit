@@ -1,5 +1,5 @@
 import { describe, test } from 'bun:test';
-import { generateParamsModule } from '../src/adapter/generate-params';
+import { generateParamsModule } from '../../src/adapter/generate-params';
 
 describe('generateParamsModule', () => {
   test('empty params', () => {
@@ -30,5 +30,3 @@ describe('generateParamsModule', () => {
     console.log('');
   });
 });
-
-// THE TEST FRAMEWORK I WANT 

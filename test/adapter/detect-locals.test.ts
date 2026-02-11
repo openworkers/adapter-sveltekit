@@ -1,10 +1,11 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
 import { existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { detectLocalsUsage } from '../src/adapter/detect-locals';
+import { detectLocalsUsage } from '../../src/adapter/detect-locals';
 
 const testDir = '/tmp/adapter-sveltekit-test-detect-locals';
 
 beforeAll(() => {
+
   if (existsSync(testDir)) {
     rmSync(testDir, { recursive: true });
   }
