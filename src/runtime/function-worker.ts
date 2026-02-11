@@ -122,13 +122,17 @@ const worker: ExportedHandler<Env> = {
 
       console.error(`[Function] Error in ${method} handler:`, error);
 
-      return Response.json(
-        { error: 'Internal Server Error' },
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      const body: Record<string, string> = { error: 'Internal Server Error' };
+
+      if (DEBUG_ERRORS) {
+        body.details = error?.message ?? String(error);
+        body.stack = error?.stack ?? '';
+      }
+
+      return Response.json(body, {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   }
 };

@@ -20,6 +20,7 @@ export interface FunctionBuildOptions extends Pick<BuildOptions, 'minify' | 'out
   debug?: {
     sourcemap?: boolean;
     prettier?: boolean;
+    errors?: boolean;
   };
   /** Path to compiled hooks.server.js (if project has hooks) */
   hooksFile?: string;
@@ -32,12 +33,12 @@ export interface FunctionBuildOptions extends Pick<BuildOptions, 'minify' | 'out
 export async function buildFunctionWorker(options: FunctionBuildOptions): Promise<void> {
   const { endpointFile, outfile, routePattern, minify = false, debug = {}, hooksFile } = options;
 
-  // Auto-detect if endpoint uses cookies
-  const usesCookies = detectCookiesUsage(endpointFile);
-
   // Auto-detect if endpoint uses locals (only relevant if hooks file exists)
   const usesLocals = detectLocalsUsage(endpointFile);
   const withHooks = usesLocals && !!hooksFile;
+
+  // Auto-detect if endpoint or hooks uses cookies
+  const usesCookies = detectCookiesUsage(endpointFile) || (withHooks && detectCookiesUsage(hooksFile!));
 
   // Auto-detect if route has params
   const hasParams = routePattern.includes('[');
@@ -92,7 +93,8 @@ export async function buildFunctionWorker(options: FunctionBuildOptions): Promis
         ROUTE_PATTERN: JSON.stringify(routePattern),
         WITH_COOKIES: JSON.stringify(usesCookies),
         WITH_PARAMS: JSON.stringify(hasParams),
-        WITH_HOOKS: JSON.stringify(withHooks)
+        WITH_HOOKS: JSON.stringify(withHooks),
+        DEBUG_ERRORS: JSON.stringify(debug.errors ?? false)
       }
     });
 

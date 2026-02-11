@@ -29,6 +29,8 @@ export interface AdapterOptions {
     sourcemap?: boolean;
     /** Format output with Prettier for readability */
     prettier?: boolean;
+    /** Include error details and stack traces in 500 responses */
+    errors?: boolean;
   };
 }
 

@@ -6,6 +6,7 @@ declare global {
   const WITH_COOKIES: boolean;
   const WITH_PARAMS: boolean;
   const WITH_HOOKS: boolean;
+  const DEBUG_ERRORS: boolean;
   const ROUTE_PATTERN: string;
 
   // Cache API types (not available in OpenWorkers runtime)

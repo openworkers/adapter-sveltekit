@@ -12,6 +12,7 @@ interface AdapterOptions {
   debug?: {
     sourcemap?: boolean;
     prettier?: boolean;
+    errors?: boolean;
   };
 }
 
