@@ -17,6 +17,7 @@
       "ENDPOINT": ["./src/ambient.d.ts"],
       "lib:cookies": ["./src/runtime/cookies.ts"],
       "lib:routing": ["./src/runtime/routing.ts"],
+      "lib:hooks": ["./src/ambient.d.ts"],
       "sveltekit:routing": ["./node_modules/@sveltejs/kit/src/utils/routing.js"]
     }
   },

@@ -124,6 +124,14 @@ export default function (options: AdapterOptions = {}): Adapter {
           const viteManifest = JSON.parse(readFileSync(viteManifestPath, 'utf-8'));
           const endpoints = extractEndpointsFromManifest(viteManifest, serverDir);
 
+          // Resolve hooks file if the project has one
+          const hooksEntry =
+            viteManifest['src/hooks.server.ts'] || viteManifest['src/hooks.server.js'];
+
+          const hooksFile = hooksEntry
+            ? posixify(path.join(serverDir, hooksEntry.file))
+            : undefined;
+
           for (const endpoint of endpoints) {
             const routePattern = endpoint.pattern;
             // Use SvelteKit route syntax for worker filename
@@ -135,7 +143,8 @@ export default function (options: AdapterOptions = {}): Adapter {
               endpointFile: posixify(endpoint.file),
               outfile: `${dest}/${workerFile}`,
               routePattern: endpoint.route,
-              minify: true
+              minify: true,
+              hooksFile
             });
 
             functions.push({

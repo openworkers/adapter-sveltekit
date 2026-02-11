@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { writeFileSync, unlinkSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { detectCookiesUsage } from './detect-cookies.js';
+import { detectLocalsUsage } from './detect-locals.js';
 import { generateParamsModule } from './generate-params.js';
 
 export interface FunctionBuildOptions extends Pick<BuildOptions, 'minify' | 'outfile'> {
@@ -15,6 +16,8 @@ export interface FunctionBuildOptions extends Pick<BuildOptions, 'minify' | 'out
   routePattern: string;
   /** Minify output */
   minify?: boolean;
+  /** Path to compiled hooks.server.js (if project has hooks) */
+  hooksFile?: string;
 }
 
 /**
@@ -22,10 +25,14 @@ export interface FunctionBuildOptions extends Pick<BuildOptions, 'minify' | 'out
  * This is the EXACT same build process used in production
  */
 export async function buildFunctionWorker(options: FunctionBuildOptions): Promise<void> {
-  const { endpointFile, outfile, routePattern, minify = false } = options;
+  const { endpointFile, outfile, routePattern, minify = false, hooksFile } = options;
 
   // Auto-detect if endpoint uses cookies
   const usesCookies = detectCookiesUsage(endpointFile);
+
+  // Auto-detect if endpoint uses locals (only relevant if hooks file exists)
+  const usesLocals = detectLocalsUsage(endpointFile);
+  const withHooks = usesLocals && !!hooksFile;
 
   // Auto-detect if route has params
   const hasParams = routePattern.includes('[');
@@ -66,7 +73,8 @@ export async function buildFunctionWorker(options: FunctionBuildOptions): Promis
         'lib:cookies': libCookies,
         'lib:routing': paramsModulePath,
         'sveltekit:cookie': svelteKitCookie,
-        'sveltekit:routing': svelteKitRouting
+        'sveltekit:routing': svelteKitRouting,
+        ...(withHooks ? { 'lib:hooks': hooksFile! } : {})
       },
       external,
       minifySyntax: minify,
@@ -74,7 +82,8 @@ export async function buildFunctionWorker(options: FunctionBuildOptions): Promis
       define: {
         ROUTE_PATTERN: JSON.stringify(routePattern),
         WITH_COOKIES: JSON.stringify(usesCookies),
-        WITH_PARAMS: JSON.stringify(hasParams)
+        WITH_PARAMS: JSON.stringify(hasParams),
+        WITH_HOOKS: JSON.stringify(withHooks)
       }
     });
   } finally {

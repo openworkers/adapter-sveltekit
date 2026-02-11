@@ -45,6 +45,10 @@ declare module 'lib:routing' {
   export function extractParams(url: URL): Record<string, string>;
 }
 
+declare module 'lib:hooks' {
+  export const handle: import('@sveltejs/kit').Handle;
+}
+
 declare module 'sveltekit:routing' {
   export interface RouteParam {
     name: string;

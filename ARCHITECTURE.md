@@ -8,6 +8,7 @@ src/
 ├── adapter/              # Build-time: runs during `adapt()`
 │   ├── build-function.ts # Bundles mini-workers for API routes
 │   ├── detect-cookies.ts # Static analysis: does endpoint use cookies?
+│   ├── detect-locals.ts  # Static analysis: does endpoint use locals?
 │   └── generate-params.ts# Generates route param extractors from SvelteKit patterns
 ├── runtime/              # Runtime: runs inside OpenWorkers
 │   ├── worker.ts         # Main SSR worker (uses server.respond())
@@ -58,6 +59,7 @@ The adapter uses esbuild's `alias` option to resolve virtual imports at bundle t
 | `ENDPOINT` | The actual `+server.ts` file | Function worker build |
 | `lib:cookies` | `dist/runtime/cookies.js` | Function worker build |
 | `lib:routing` | Generated params extractor (temp file) | Function worker build |
+| `lib:hooks` | Compiled `hooks.server.js` from project | Function worker build (when endpoint uses `locals`) |
 | `sveltekit:cookie` | SvelteKit's internal cookie module | Adapter + function build |
 | `sveltekit:routing` | SvelteKit's internal routing module | Adapter + function build |
 | `node:async_hooks` | `dist/shims/async-hooks.js` | Main worker build |
@@ -83,11 +85,13 @@ vite build
                  └─ esbuild: function-worker.ts + endpoint → build/functions/<name>.js
 ```
 
-## Why `locals: {}` in function-worker
+## How `locals` works in function-worker
 
 The main worker runs `server.respond()` which executes the full SvelteKit request lifecycle, including `hooks.server.ts` where `event.locals` is typically populated.
 
-Function workers bypass this entirely -- they call endpoint handlers directly. There is no `handle()` hook in the pipeline, so `locals` stays as an empty object. This is a deliberate trade-off for performance: function workers are smaller and faster, but they cannot rely on hook-injected data.
+Function workers call endpoint handlers directly without `server.respond()`. By default, `locals` is `{}`. However, when an endpoint **actually uses `locals`** (detected via static analysis, same pattern as `WITH_COOKIES` / `WITH_PARAMS`), and the project has a `hooks.server.ts`, the adapter sets `WITH_HOOKS: true` and aliases `lib:hooks` to the compiled hooks file. At runtime, the function worker wraps the handler call with the project's `handle()` hook, which populates `locals` before the handler runs.
+
+This keeps function workers lightweight: endpoints that don't use `locals` pay no cost, while those that do get the hook pipeline automatically.
 
 ## Error handling in function-worker (duck-typing)
 
