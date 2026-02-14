@@ -162,6 +162,86 @@ export default function (options: AdapterOptions = {}): Adapter {
             builder.log.minor(`  Generated function: ${routePattern} → ${workerFile}`);
           }
         }
+
+        // Build page workers for routes with +page.server.ts
+        for (const route of builder.routes) {
+          // Skip prerendered pages
+          if (route.prerender === true) continue;
+
+          // Skip routes without page methods (API-only routes handled above)
+          if (route.page.methods.length === 0) continue;
+
+          // Skip the root layout-only routes
+          if (!route.id) continue;
+
+          const workerName = route.id.replace(/\//g, '-').replace(/^-/, '') || 'index';
+          const workerFile = `functions/${workerName}.js`;
+
+          // Generate a filtered manifest containing only this route
+          const pageManifest = `${tmp}/manifest-${workerName}.js`;
+
+          writeFileSync(
+            pageManifest,
+            `export const manifest = ${builder.generateManifest({
+              relativePath: path.posix.relative(tmp, builder.getServerDirectory()),
+              routes: [route]
+            })};\n`
+          );
+
+          // Create entry point that imports Server + filtered manifest
+          const pageEntry = `${tmp}/entry-${workerName}.js`;
+
+          writeFileSync(
+            pageEntry,
+            `import { Server } from '${serverPath}';\n` +
+              `import { manifest } from '${posixify(path.resolve(pageManifest))}';\n` +
+              `export { Server, manifest };\n`
+          );
+
+          // Bundle page worker with esbuild
+          await build({
+            entryPoints: [`${files}/runtime/page-worker.js`],
+            bundle: true,
+            format: 'esm',
+            platform: 'neutral',
+            mainFields: ['module', 'main'],
+            outfile: `${dest}/${workerFile}`,
+            alias: {
+              SERVER: pageEntry,
+              'node:async_hooks': `${shimsDir}/async-hooks.js`,
+              ...(nodeCompat
+                ? {
+                    path: `${shimsDir}/node-path.js`,
+                    'node:path': `${shimsDir}/node-path.js`,
+                    fs: `${shimsDir}/node-fs.js`,
+                    'node:fs': `${shimsDir}/node-fs.js`,
+                    url: `${shimsDir}/node-url.js`,
+                    'node:url': `${shimsDir}/node-url.js`
+                  }
+                : {})
+            },
+            external: ['node:*'],
+            minifySyntax: true,
+            minifyWhitespace: true,
+            minifyIdentifiers: true,
+            treeShaking: true
+          } satisfies BuildOptions);
+
+          const pattern = convertRouteToPattern(route.id);
+
+          functions.push({
+            pattern,
+            worker: workerFile
+          });
+
+          // SvelteKit fetches page data via __data.json for client-side navigation
+          functions.push({
+            pattern: pattern + '/__data.json',
+            worker: workerFile
+          });
+
+          builder.log.minor(`  Generated page function: ${pattern} → ${workerFile}`);
+        }
       }
 
       // Generate _routes.json for edge routing

@@ -29,6 +29,12 @@ const builds: BuildOptions[] = [
     },
     external: ['ENDPOINT', 'lib:cookies', 'lib:routing', 'lib:hooks', 'node:async_hooks']
   },
+  // Page worker (SSR with filtered manifest, aliased at build time per route)
+  {
+    entryPoints: ['src/runtime/page-worker.ts'],
+    outfile: 'dist/runtime/page-worker.js',
+    external: ['SERVER', 'node:async_hooks']
+  },
   // Runtime: cookies
   {
     entryPoints: ['src/runtime/cookies.ts'],
