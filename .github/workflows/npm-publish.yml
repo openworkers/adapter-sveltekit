@@ -28,7 +28,7 @@ jobs:
       - name: Setup Node.js for publishing
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Build
@@ -39,9 +39,6 @@ jobs:
 
       - name: Run tests
         run: bun test
-
-      - name: Update npm to latest
-        run: npm install -g npm@latest
 
       - name: Publish to npm
         run: npm publish
