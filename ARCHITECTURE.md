@@ -16,7 +16,7 @@ src/
 │   ├── cookies.ts        # Cookie helpers (wraps SvelteKit internals)
 │   └── routing.ts        # Route matching (re-exports SvelteKit's parseRouteId)
 └── shims/                # Polyfills for missing Node APIs
-    ├── async-hooks.ts    # Stub for node:async_hooks (SvelteKit imports it)
+    ├── async-hooks.ts    # node:async_hooks: the AsyncLocalStorage of the runtime
     ├── node-path.ts      # Minimal path module (nodeCompat option)
     ├── node-fs.ts        # Stub fs module (nodeCompat option)
     └── node-url.ts       # Minimal url module (nodeCompat option)
@@ -46,7 +46,7 @@ Runs inside OpenWorkers when a request arrives.
 
 Polyfills injected via esbuild aliases to replace Node built-ins that don't exist in the OpenWorkers runtime:
 
-- `node:async_hooks` is always shimmed (SvelteKit imports `AsyncLocalStorage`)
+- `node:async_hooks` is always aliased: it exports the `AsyncLocalStorage` of the runtime (SvelteKit imports it)
 - `path`, `fs`, `url` are shimmed only when `nodeCompat: true`
 
 ## How esbuild aliases work

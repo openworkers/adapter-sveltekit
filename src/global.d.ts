@@ -11,6 +11,9 @@ declare global {
 
   // Cache API types (not available in OpenWorkers runtime)
   var caches: CacheStorage | undefined;
+
+  // Provided by the OpenWorkers runtime
+  var AsyncLocalStorage: typeof import('node:async_hooks').AsyncLocalStorage;
 }
 
 export {};
