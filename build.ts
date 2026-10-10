@@ -10,7 +10,8 @@ const builds: BuildOptions[] = [
     alias: {
       'sveltekit:routing': join(process.cwd(), 'node_modules/@sveltejs/kit/src/utils/routing.js')
     },
-    external: ['node:*', 'esbuild', '@sveltejs/kit'],
+    // prettier is optional: debug.prettier imports it from the project
+    external: ['node:*', 'esbuild', '@sveltejs/kit', 'prettier'],
     platform: 'node'
   },
   // Main worker
