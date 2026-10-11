@@ -65,7 +65,8 @@ const worker: ExportedHandler<Env> = {
         return env.ASSETS.fetch(file);
       }
 
-      return env.ASSETS.fetch(req);
+      // The path only: the request headers (Host, cookies) must not reach the storage
+      return env.ASSETS.fetch(pathname);
     }
 
     // Trailing slash redirect for prerendered pages
