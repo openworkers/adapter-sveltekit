@@ -1,6 +1,6 @@
 # @openworkers/adapter-sveltekit
 
-SvelteKit adapter for OpenWorkers.
+SvelteKit 2 and 3 adapter for OpenWorkers. Requires OpenWorkers runner 0.15.21 or later, 1.x included.
 
 ## Installation
 
@@ -9,6 +9,25 @@ bun add -d @openworkers/adapter-sveltekit
 ```
 
 ## Usage
+
+### SvelteKit 3
+
+```js
+// vite.config.js
+import { defineConfig } from 'vite';
+import { sveltekit } from '@sveltejs/kit/vite';
+import adapter from '@openworkers/adapter-sveltekit';
+
+export default defineConfig({
+  plugins: [sveltekit({ adapter: adapter({ outDir: 'build' }) })]
+});
+```
+
+SvelteKit 3 builds a single worker for SSR and API routes. If `functions: true`
+is set, the adapter emits a warning and builds a single worker. It does not
+generate a `functions/` directory; `_routes.json` contains an empty `functions` list.
+
+### SvelteKit 2
 
 ```js
 // svelte.config.js
@@ -26,11 +45,11 @@ export default {
 
 ## Options
 
-| Option       | Type      | Default   | Description                                       |
-| ------------ | --------- | --------- | ------------------------------------------------- |
-| `outDir`     | `string`  | `'build'` | Output directory for the build                    |
-| `functions`  | `boolean` | `false`   | Generate separate mini-workers for each API route |
-| `nodeCompat` | `boolean` | `false`   | Include shims for Node.js built-in modules        |
+| Option       | Type      | Default   | Description                                                          |
+| ------------ | --------- | --------- | -------------------------------------------------------------------- |
+| `outDir`     | `string`  | `'build'` | Output directory for the build                                       |
+| `functions`  | `boolean` | `false`   | Generate mini-workers on SvelteKit 2; warn and ignore on SvelteKit 3 |
+| `nodeCompat` | `boolean` | `false`   | Include shims for Node.js built-in modules                           |
 
 ## Output
 
@@ -46,7 +65,7 @@ build/
 
 ## Functions Mode
 
-When `functions: true`, the adapter generates a separate mini-worker for each `+server.ts` endpoint:
+On SvelteKit 2, when `functions: true`, the adapter generates a separate mini-worker for each `+server.ts` endpoint:
 
 - `/api/hello/+server.ts` → `functions/api-hello.js`
 - `/api/users/+server.ts` → `functions/api-users.js`
@@ -132,3 +151,21 @@ ow workers upload my-app ./build
 ## License
 
 MIT
+
+## Development
+
+Use Node 22.17 or later for the SvelteKit 3 fixture builds.
+
+```bash
+bun install --frozen-lockfile
+bun install --cwd test/fixtures/kit3 --frozen-lockfile
+bun run build
+bun run check
+bun test
+```
+
+The compatibility tests build real SvelteKit 2 and 3 apps, then exercise the
+bundled worker with SSR, hooks, bindings, cookies, form actions, streaming,
+page data, static assets and prerendered pages. They also check a URL base path
+and the SvelteKit 3 `functions` warning. SvelteKit 3 fixture dependencies have a
+separate lockfile so the adapter's SvelteKit 2 build stays independent.

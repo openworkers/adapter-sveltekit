@@ -14,7 +14,7 @@
         "prettier": "^3.9.10",
       },
       "peerDependencies": {
-        "@sveltejs/kit": "^2.0.0",
+        "@sveltejs/kit": "^2.0.0 || ^3.0.0",
       },
     },
   },

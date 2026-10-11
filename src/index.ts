@@ -2,7 +2,7 @@ import { existsSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build, BuildOptions } from 'esbuild';
-import type { Adapter } from '@sveltejs/kit';
+import type { Adapter, Builder } from '@sveltejs/kit';
 import { buildFunctionWorker } from './adapter/build-function.js';
 
 interface AdapterOptions {
@@ -16,6 +16,12 @@ interface AdapterOptions {
   };
 }
 
+type Builder3 = Omit<Builder, 'config' | 'generateManifest'> & {
+  config: { paths: { base: string } };
+  manifest: { assets: Array<{ path: string }> };
+  generateServerInstance(dest: string): void;
+};
+
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'));
 const name = '@openworkers/adapter-sveltekit';
 const version: string = pkg.version;
@@ -27,10 +33,16 @@ export default function (options: AdapterOptions = {}): Adapter {
       read: () => true
     },
 
-    async adapt(builder) {
+    async adapt(builder: Builder | Builder3) {
       const dest = options.outDir ?? 'build';
       const assetsDir = `${dest}/assets`;
-      const functionsEnabled = options.functions ?? false;
+      const kit3 = 'generateServerInstance' in builder;
+      const functionsEnabled = (options.functions ?? false) && !kit3;
+
+      if (kit3 && options.functions) {
+        builder.log.warn('functions: true is not supported with SvelteKit 3; generating a single worker.');
+      }
+
       const nodeCompat = options.nodeCompat ?? false;
       const debug = options.debug ?? {};
 
@@ -59,24 +71,38 @@ export default function (options: AdapterOptions = {}): Adapter {
         writeFileSync(fallback, 'Not Found');
       }
 
-      // Generate manifest
-      writeFileSync(
-        `${tmp}/manifest.js`,
-        `export const manifest = ${builder.generateManifest({ relativePath: path.posix.relative(tmp, builder.getServerDirectory()) })};\n\n` +
-          `export const prerendered = new Set(${JSON.stringify(builder.prerendered.paths)});\n\n` +
-          `export const base_path = ${JSON.stringify(builder.config.kit.paths.base)};\n`
-      );
-
-      // Create entry point that imports server and manifest
       const entryPoint = `${tmp}/entry.js`;
       const serverPath = posixify(path.resolve(builder.getServerDirectory(), 'index.js'));
       const manifestPath = posixify(path.resolve(tmp, 'manifest.js'));
+      let entry: string;
+      let basePath: string;
+
+      if (kit3) {
+        const generatedServer = posixify(path.resolve(tmp, 'server.js'));
+        builder.generateServerInstance(generatedServer);
+        basePath = builder.config.paths.base;
+        entry =
+          `export { server } from ${JSON.stringify(generatedServer)};\n` +
+          `export const assets = new Set(${JSON.stringify(builder.manifest.assets.map((asset) => asset.path))});\n`;
+      } else {
+        basePath = builder.config.kit.paths.base;
+        writeFileSync(
+          manifestPath,
+          `export const manifest = ${builder.generateManifest({ relativePath: path.posix.relative(tmp, builder.getServerDirectory()) })};\n`
+        );
+        entry =
+          `import { Server } from ${JSON.stringify(serverPath)};\n` +
+          `import { manifest } from ${JSON.stringify(manifestPath)};\n` +
+          `export const server = new Server(manifest);\n` +
+          `export const assets = new Set([...manifest.assets, ...Object.keys(manifest._.server_assets)]);\n`;
+      }
 
       writeFileSync(
         entryPoint,
-        `import { Server } from '${serverPath}';\n` +
-          `import { manifest, prerendered, base_path } from '${manifestPath}';\n` +
-          `export { Server, manifest, prerendered, base_path };\n`
+        entry +
+          `export const app_path = ${JSON.stringify(appPath)};\n` +
+          `export const base_path = ${JSON.stringify(basePath)};\n` +
+          `export const prerendered = new Map(${JSON.stringify(Array.from(builder.prerendered.pages, ([url, page]) => [url, page.file]))});\n`
       );
 
       // Bundle main worker with esbuild
@@ -90,6 +116,8 @@ export default function (options: AdapterOptions = {}): Adapter {
         platform: 'neutral',
         mainFields: ['module', 'main'],
         outfile: workerDest,
+        // Workers have no filesystem directory for SvelteKit's source-map lookup.
+        define: kit3 ? { 'import.meta.dirname': 'undefined' } : undefined,
         alias: {
           SERVER: entryPoint,
           MANIFEST: entryPoint,
@@ -131,12 +159,9 @@ export default function (options: AdapterOptions = {}): Adapter {
           const endpoints = extractEndpointsFromManifest(viteManifest, serverDir);
 
           // Resolve hooks file if the project has one
-          const hooksEntry =
-            viteManifest['src/hooks.server.ts'] || viteManifest['src/hooks.server.js'];
+          const hooksEntry = viteManifest['src/hooks.server.ts'] || viteManifest['src/hooks.server.js'];
 
-          const hooksFile = hooksEntry
-            ? posixify(path.join(serverDir, hooksEntry.file))
-            : undefined;
+          const hooksFile = hooksEntry ? posixify(path.join(serverDir, hooksEntry.file)) : undefined;
 
           for (const endpoint of endpoints) {
             const routePattern = endpoint.pattern;

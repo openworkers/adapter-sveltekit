@@ -1,3 +1,7 @@
 node_modules/
 dist/
+/test/fixtures/kit*/.svelte-kit/
+/test/fixtures/kit*/build/
+/test/fixtures/kit*/src/
+/test/fixtures/kit*/static/
 .claude

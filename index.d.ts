@@ -8,8 +8,8 @@ export interface AdapterOptions {
   outDir?: string;
 
   /**
-   * Generate separate mini-workers for each API route.
-   * Outputs to `build/functions/` with routing info in `routes.js`.
+   * Generate separate mini-workers on SvelteKit 2.
+   * On SvelteKit 3, emit a warning and build a single worker.
    * @default false
    */
   functions?: boolean;
