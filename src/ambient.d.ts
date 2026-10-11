@@ -2,8 +2,11 @@ import type { SSRManifest } from '@sveltejs/kit';
 
 declare module 'SERVER' {
   export const Server: typeof import('@sveltejs/kit').Server;
+  export const server: InstanceType<typeof Server>;
+  export const assets: Set<string>;
+  export const app_path: string;
   export const manifest: SSRManifest;
-  export const prerendered: Set<string>;
+  export const prerendered: Map<string, string>;
   export const base_path: string;
 }
 

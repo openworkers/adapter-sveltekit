@@ -2,7 +2,7 @@ import { existsSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build, BuildOptions } from 'esbuild';
-import type { Adapter } from '@sveltejs/kit';
+import type { Adapter, Builder } from '@sveltejs/kit';
 import { buildFunctionWorker } from './adapter/build-function.js';
 
 interface AdapterOptions {
@@ -16,6 +16,12 @@ interface AdapterOptions {
   };
 }
 
+type Builder3 = Omit<Builder, 'config' | 'generateManifest'> & {
+  config: { paths: { base: string } };
+  manifest: { assets: Array<{ path: string }> };
+  generateServerInstance(dest: string): void;
+};
+
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'));
 const name = '@openworkers/adapter-sveltekit';
 const version: string = pkg.version;
@@ -27,10 +33,16 @@ export default function (options: AdapterOptions = {}): Adapter {
       read: () => true
     },
 
-    async adapt(builder) {
+    async adapt(builder: Builder | Builder3) {
       const dest = options.outDir ?? 'build';
       const assetsDir = `${dest}/assets`;
-      const functionsEnabled = options.functions ?? false;
+      const kit3 = 'generateServerInstance' in builder;
+      const functionsEnabled = (options.functions ?? false) && !kit3;
+
+      if (kit3 && options.functions) {
+        builder.log.warn('functions: true is not supported with SvelteKit 3; generating a single worker.');
+      }
+
       const nodeCompat = options.nodeCompat ?? false;
       const debug = options.debug ?? {};
 
@@ -42,15 +54,21 @@ export default function (options: AdapterOptions = {}): Adapter {
       builder.mkdirp(assetsDir);
       builder.mkdirp(tmp);
 
+      const basePath = kit3 ? builder.config.paths.base : builder.config.kit.paths.base;
+
+      // Assets are stored under the base path, so a request path is also its storage key
+      const assetsBaseDir = `${assetsDir}${basePath}`;
+
       // Write client assets (returns list of files)
-      const clientFiles = builder.writeClient(assetsDir);
+      const clientFiles = builder.writeClient(assetsBaseDir);
 
       // Write prerendered pages
-      builder.writePrerendered(assetsDir);
+      builder.writePrerendered(assetsBaseDir);
 
       // Separate static files from app files
       const appPath = builder.getAppPath();
-      const staticFiles = clientFiles.filter((f) => !f.startsWith(appPath));
+      const appDir = appPath.slice(basePath.length);
+      const staticFiles = clientFiles.filter((f) => !f.startsWith(`${appDir}/`));
 
       // Generate 404.html fallback
       const fallback = path.join(assetsDir, '404.html');
@@ -59,24 +77,35 @@ export default function (options: AdapterOptions = {}): Adapter {
         writeFileSync(fallback, 'Not Found');
       }
 
-      // Generate manifest
-      writeFileSync(
-        `${tmp}/manifest.js`,
-        `export const manifest = ${builder.generateManifest({ relativePath: path.posix.relative(tmp, builder.getServerDirectory()) })};\n\n` +
-          `export const prerendered = new Set(${JSON.stringify(builder.prerendered.paths)});\n\n` +
-          `export const base_path = ${JSON.stringify(builder.config.kit.paths.base)};\n`
-      );
-
-      // Create entry point that imports server and manifest
       const entryPoint = `${tmp}/entry.js`;
       const serverPath = posixify(path.resolve(builder.getServerDirectory(), 'index.js'));
       const manifestPath = posixify(path.resolve(tmp, 'manifest.js'));
+      let entry: string;
+
+      if (kit3) {
+        const generatedServer = posixify(path.resolve(tmp, 'server.js'));
+        builder.generateServerInstance(generatedServer);
+        entry =
+          `export { server } from ${JSON.stringify(generatedServer)};\n` +
+          `export const assets = new Set(${JSON.stringify(builder.manifest.assets.map((asset) => asset.path))});\n`;
+      } else {
+        writeFileSync(
+          manifestPath,
+          `export const manifest = ${builder.generateManifest({ relativePath: path.posix.relative(tmp, builder.getServerDirectory()) })};\n`
+        );
+        entry =
+          `import { Server } from ${JSON.stringify(serverPath)};\n` +
+          `import { manifest } from ${JSON.stringify(manifestPath)};\n` +
+          `export const server = new Server(manifest);\n` +
+          `export const assets = new Set([...manifest.assets, ...Object.keys(manifest._.server_assets)]);\n`;
+      }
 
       writeFileSync(
         entryPoint,
-        `import { Server } from '${serverPath}';\n` +
-          `import { manifest, prerendered, base_path } from '${manifestPath}';\n` +
-          `export { Server, manifest, prerendered, base_path };\n`
+        entry +
+          `export const app_path = ${JSON.stringify(appPath)};\n` +
+          `export const base_path = ${JSON.stringify(basePath)};\n` +
+          `export const prerendered = new Map(${JSON.stringify(prerenderedFiles(builder.prerendered, basePath))});\n`
       );
 
       // Bundle main worker with esbuild
@@ -90,6 +119,8 @@ export default function (options: AdapterOptions = {}): Adapter {
         platform: 'neutral',
         mainFields: ['module', 'main'],
         outfile: workerDest,
+        // Workers have no filesystem directory for SvelteKit's source-map lookup.
+        define: kit3 ? { 'import.meta.dirname': 'undefined' } : undefined,
         alias: {
           SERVER: entryPoint,
           MANIFEST: entryPoint,
@@ -131,12 +162,9 @@ export default function (options: AdapterOptions = {}): Adapter {
           const endpoints = extractEndpointsFromManifest(viteManifest, serverDir);
 
           // Resolve hooks file if the project has one
-          const hooksEntry =
-            viteManifest['src/hooks.server.ts'] || viteManifest['src/hooks.server.js'];
+          const hooksEntry = viteManifest['src/hooks.server.ts'] || viteManifest['src/hooks.server.js'];
 
-          const hooksFile = hooksEntry
-            ? posixify(path.join(serverDir, hooksEntry.file))
-            : undefined;
+          const hooksFile = hooksEntry ? posixify(path.join(serverDir, hooksEntry.file)) : undefined;
 
           for (const endpoint of endpoints) {
             const routePattern = endpoint.pattern;
@@ -249,7 +277,7 @@ export default function (options: AdapterOptions = {}): Adapter {
         // Immutable assets (hashed filenames, cache forever)
         immutable: [`/${appPath}/immutable/*`],
         // Static files from /static folder (robots.txt, favicon, etc.)
-        static: staticFiles.map((f) => `/${f}`),
+        static: staticFiles.map((f) => `${basePath}/${f}`),
         // Prerendered pages (serve from assets, no worker needed)
         prerendered: builder.prerendered.paths,
         // Functions (API routes as separate workers)
@@ -342,6 +370,28 @@ function convertRouteToPattern(route: string): string {
   });
 
   return '/' + patternSegments.join('/');
+}
+
+/**
+ * Map each prerendered path (pages, endpoints and redirects) to its storage key.
+ * Mirrors the output filenames of SvelteKit's prerenderer.
+ */
+function prerenderedFiles(prerendered: Builder['prerendered'], basePath: string): Array<[string, string]> {
+  const file = (pathname: string, html: boolean) => {
+    const name = pathname.slice(basePath.length + 1) || 'index.html';
+
+    if (html && !name.endsWith('.html')) {
+      return `${basePath}/${name}${name.endsWith('/') ? 'index.html' : '.html'}`;
+    }
+
+    return `${basePath}/${name}`;
+  };
+
+  return [
+    ...Array.from(prerendered.pages, ([pathname, page]): [string, string] => [pathname, `${basePath}/${page.file}`]),
+    ...Array.from(prerendered.assets.keys(), (pathname): [string, string] => [pathname, file(pathname, false)]),
+    ...Array.from(prerendered.redirects.keys(), (pathname): [string, string] => [pathname, file(pathname, true)])
+  ];
 }
 
 function posixify(str: string): string {
