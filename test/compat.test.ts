@@ -48,6 +48,13 @@ for (const kit of ['kit2', 'kit3']) {
         const routes = JSON.parse(readFileSync(path.join(output, '_routes.json'), 'utf8'));
         expect(routes.functions).toEqual([]);
         expect(routes.prerendered).toContain(`${base}/static-page/`);
+        expect(routes.prerendered).toContain(`${base}/sitemap.xml`);
+        expect(routes.static).toEqual([`${base}/hello.txt`]);
+        expect(routes.immutable).toEqual([`${base}/_app/immutable/*`]);
+        // The runner serves storage routes with the request path as the storage key
+        for (const pattern of [...routes.static, ...routes.immutable.map((p: string) => p.slice(0, -2))]) {
+          expect(existsSync(path.join(output, 'assets', pattern)), pattern).toBe(true);
+        }
 
         globalThis.AsyncLocalStorage = AsyncLocalStorage;
         const assetRequests: string[] = [];
@@ -104,7 +111,16 @@ for (const kit of ['kit2', 'kit3']) {
         const asset = await call('/hello.txt');
         expect(asset.status).toBe(200);
         expect(await asset.text()).toBe('static asset\n');
-        expect(assetRequests).toContain('/static-page/index.html');
+        expect(assetRequests).toContain(`${base}/static-page/index.html`);
+        const sitemap = await call('/sitemap.xml');
+        expect(sitemap.status).toBe(200);
+        expect(await sitemap.text()).toBe('<urlset/>');
+        const oldPage = await call('/old-page');
+        expect(oldPage.status).toBe(200);
+        expect(await oldPage.text()).toContain('url=static-page/');
+        const version = await call('/_app/version.json');
+        expect(version.status).toBe(200);
+        expect(await version.json()).toHaveProperty('version');
         const missing = await call('/not-found');
         expect(missing.status).toBe(404);
       }, 30000);

@@ -14,7 +14,7 @@ let origin: string;
 const initialized = server.init({
   env: (globalThis.env ?? {}) as Env,
   read: async (file: string) => {
-    const url = `${origin}/${file}`;
+    const url = `${origin}${base_path}/${file}`;
     const response = await globalThis.env.ASSETS.fetch(url);
 
     if (!response.ok) {
@@ -62,13 +62,7 @@ const worker: ExportedHandler<Env> = {
       const file = prerendered.get(pathname);
 
       if (file) {
-        return env.ASSETS.fetch(`/${file}`);
-      }
-
-      if (base_path) {
-        const assetUrl = new URL(req.url);
-        assetUrl.pathname = assetUrl.pathname.slice(base_path.length);
-        return env.ASSETS.fetch(new Request(assetUrl, req));
+        return env.ASSETS.fetch(file);
       }
 
       return env.ASSETS.fetch(req);

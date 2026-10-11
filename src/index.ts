@@ -54,15 +54,21 @@ export default function (options: AdapterOptions = {}): Adapter {
       builder.mkdirp(assetsDir);
       builder.mkdirp(tmp);
 
+      const basePath = kit3 ? builder.config.paths.base : builder.config.kit.paths.base;
+
+      // Assets are stored under the base path, so a request path is also its storage key
+      const assetsBaseDir = `${assetsDir}${basePath}`;
+
       // Write client assets (returns list of files)
-      const clientFiles = builder.writeClient(assetsDir);
+      const clientFiles = builder.writeClient(assetsBaseDir);
 
       // Write prerendered pages
-      builder.writePrerendered(assetsDir);
+      builder.writePrerendered(assetsBaseDir);
 
       // Separate static files from app files
       const appPath = builder.getAppPath();
-      const staticFiles = clientFiles.filter((f) => !f.startsWith(appPath));
+      const appDir = appPath.slice(basePath.length);
+      const staticFiles = clientFiles.filter((f) => !f.startsWith(`${appDir}/`));
 
       // Generate 404.html fallback
       const fallback = path.join(assetsDir, '404.html');
@@ -75,17 +81,14 @@ export default function (options: AdapterOptions = {}): Adapter {
       const serverPath = posixify(path.resolve(builder.getServerDirectory(), 'index.js'));
       const manifestPath = posixify(path.resolve(tmp, 'manifest.js'));
       let entry: string;
-      let basePath: string;
 
       if (kit3) {
         const generatedServer = posixify(path.resolve(tmp, 'server.js'));
         builder.generateServerInstance(generatedServer);
-        basePath = builder.config.paths.base;
         entry =
           `export { server } from ${JSON.stringify(generatedServer)};\n` +
           `export const assets = new Set(${JSON.stringify(builder.manifest.assets.map((asset) => asset.path))});\n`;
       } else {
-        basePath = builder.config.kit.paths.base;
         writeFileSync(
           manifestPath,
           `export const manifest = ${builder.generateManifest({ relativePath: path.posix.relative(tmp, builder.getServerDirectory()) })};\n`
@@ -102,7 +105,7 @@ export default function (options: AdapterOptions = {}): Adapter {
         entry +
           `export const app_path = ${JSON.stringify(appPath)};\n` +
           `export const base_path = ${JSON.stringify(basePath)};\n` +
-          `export const prerendered = new Map(${JSON.stringify(Array.from(builder.prerendered.pages, ([url, page]) => [url, page.file]))});\n`
+          `export const prerendered = new Map(${JSON.stringify(prerenderedFiles(builder.prerendered, basePath))});\n`
       );
 
       // Bundle main worker with esbuild
@@ -274,7 +277,7 @@ export default function (options: AdapterOptions = {}): Adapter {
         // Immutable assets (hashed filenames, cache forever)
         immutable: [`/${appPath}/immutable/*`],
         // Static files from /static folder (robots.txt, favicon, etc.)
-        static: staticFiles.map((f) => `/${f}`),
+        static: staticFiles.map((f) => `${basePath}/${f}`),
         // Prerendered pages (serve from assets, no worker needed)
         prerendered: builder.prerendered.paths,
         // Functions (API routes as separate workers)
@@ -367,6 +370,28 @@ function convertRouteToPattern(route: string): string {
   });
 
   return '/' + patternSegments.join('/');
+}
+
+/**
+ * Map each prerendered path (pages, endpoints and redirects) to its storage key.
+ * Mirrors the output filenames of SvelteKit's prerenderer.
+ */
+function prerenderedFiles(prerendered: Builder['prerendered'], basePath: string): Array<[string, string]> {
+  const file = (pathname: string, html: boolean) => {
+    const name = pathname.slice(basePath.length + 1) || 'index.html';
+
+    if (html && !name.endsWith('.html')) {
+      return `${basePath}/${name}${name.endsWith('/') ? 'index.html' : '.html'}`;
+    }
+
+    return `${basePath}/${name}`;
+  };
+
+  return [
+    ...Array.from(prerendered.pages, ([pathname, page]): [string, string] => [pathname, `${basePath}/${page.file}`]),
+    ...Array.from(prerendered.assets.keys(), (pathname): [string, string] => [pathname, file(pathname, false)]),
+    ...Array.from(prerendered.redirects.keys(), (pathname): [string, string] => [pathname, file(pathname, true)])
+  ];
 }
 
 function posixify(str: string): string {
